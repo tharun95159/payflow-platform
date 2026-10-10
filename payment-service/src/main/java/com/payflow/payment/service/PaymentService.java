@@ -8,21 +8,37 @@ import com.payflow.payment.exception.PaymentNotFoundException;
 import com.payflow.payment.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import com.payflow.payment.client.AccountClient;
+import com.payflow.payment.dto.AccountResponse;
 
 @Service
 public class PaymentService {
 
-    private final PaymentRepository paymentRepository;
 
-    public PaymentService(PaymentRepository paymentRepository) {
+    private final PaymentRepository paymentRepository;
+    private final AccountClient accountClient;
+
+    public PaymentService(
+            PaymentRepository paymentRepository,
+            AccountClient accountClient) {
+
         this.paymentRepository = paymentRepository;
+        this.accountClient = accountClient;
     }
+
 
     public PaymentResponse createPayment(PaymentRequest request) {
 
         LocalDateTime now = LocalDateTime.now();
+
+        validateAccounts(
+                request.getFromAccountId(),
+                request.getToAccountId(),
+                request.getAmount()
+        );
 
         Payment payment = Payment.builder()
                 .paymentReference(generatePaymentReference())
@@ -72,4 +88,39 @@ public class PaymentService {
                 .createdAt(payment.getCreatedAt())
                 .build();
     }
+
+
+    private void validateAccounts(
+            Long fromAccountId,
+            Long toAccountId,
+            BigDecimal amount) {
+
+        AccountResponse fromAccount =
+                accountClient.getAccountById(fromAccountId);
+
+        AccountResponse toAccount =
+                accountClient.getAccountById(toAccountId);
+
+        if (!"ACTIVE".equals(fromAccount.status())) {
+            throw new IllegalArgumentException(
+                    "Source account is not active: " + fromAccountId
+            );
+        }
+
+
+        if (fromAccount.balance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException(
+                    "Insufficient balance in source account: " + fromAccountId
+            );
+        }
+
+
+
+        if (!"ACTIVE".equals(toAccount.status())) {
+            throw new IllegalArgumentException(
+                    "Destination account is not active: " + toAccountId
+            );
+        }
+    }
+
 }
