@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import com.payflow.payment.client.AccountClient;
 import com.payflow.payment.dto.AccountResponse;
+import com.payflow.payment.exception.InvalidPaymentStatusTransitionException;
 
 @Service
 public class PaymentService {
@@ -75,6 +76,52 @@ public class PaymentService {
 
         return mapToResponse(payment);
     }
+
+
+    public PaymentResponse updatePaymentStatus(
+            String paymentReference,
+            PaymentStatus newStatus) {
+
+        Payment payment = paymentRepository
+                .findByPaymentReference(paymentReference)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(
+                                "Payment not found with reference: " + paymentReference
+                        )
+                );
+
+        PaymentStatus currentStatus = payment.getStatus();
+
+        if (currentStatus == PaymentStatus.COMPLETED ||
+                currentStatus == PaymentStatus.FAILED) {
+            throw new InvalidPaymentStatusTransitionException(
+                    "Cannot update a payment that is already " + currentStatus
+            );
+        }
+
+        if (currentStatus == PaymentStatus.INITIATED &&
+                newStatus != PaymentStatus.PROCESSING) {
+            throw new InvalidPaymentStatusTransitionException(
+                    "INITIATED payment can only move to PROCESSING"
+            );
+        }
+
+        if (currentStatus == PaymentStatus.PROCESSING &&
+                newStatus != PaymentStatus.COMPLETED &&
+                newStatus != PaymentStatus.FAILED) {
+            throw new InvalidPaymentStatusTransitionException(
+                    "PROCESSING payment can only move to COMPLETED or FAILED"
+            );
+        }
+
+        payment.setStatus(newStatus);
+        payment.setUpdatedAt(LocalDateTime.now());
+
+        Payment updatedPayment = paymentRepository.save(payment);
+
+        return mapToResponse(updatedPayment);
+    }
+
 
     private PaymentResponse mapToResponse(Payment payment) {
 

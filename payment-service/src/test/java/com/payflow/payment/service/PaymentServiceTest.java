@@ -12,16 +12,14 @@ import com.payflow.payment.exception.PaymentNotFoundException;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import java.math.BigDecimal;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import com.payflow.payment.client.AccountClient;
 import com.payflow.payment.dto.AccountResponse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 class PaymentServiceTest {
@@ -264,6 +262,36 @@ class PaymentServiceTest {
         verify(paymentRepository, never())
                 .save(any(Payment.class));
     }
+
+    @Test
+    void shouldUpdatePaymentStatusFromInitiatedToProcessing() {
+
+        // Arrange
+        String paymentReference = "PAY-123";
+
+        Payment payment = new Payment();
+        payment.setPaymentReference(paymentReference);
+        payment.setStatus(PaymentStatus.INITIATED);
+
+        when(paymentRepository.findByPaymentReference(paymentReference))
+                .thenReturn(Optional.of(payment));
+
+        when(paymentRepository.save(any(Payment.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        PaymentResponse response = paymentService.updatePaymentStatus(
+                paymentReference,
+                PaymentStatus.PROCESSING
+        );
+
+        // Assert
+        assertEquals(PaymentStatus.PROCESSING, payment.getStatus());
+        assertNotNull(response);
+
+        verify(paymentRepository).save(payment);
+    }
+
 
 
 

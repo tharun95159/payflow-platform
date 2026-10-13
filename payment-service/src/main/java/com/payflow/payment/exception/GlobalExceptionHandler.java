@@ -85,7 +85,9 @@ public class GlobalExceptionHandler {
 
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.BAD_REQUEST.value());
+
         response.put("error", "ACCOUNT_VALIDATION_ERROR");
+
         response.put("message", exception.getMessage());
 
         return ResponseEntity
@@ -93,5 +95,21 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+
+    @ExceptionHandler(InvalidPaymentStatusTransitionException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidPaymentStatusTransition(
+            InvalidPaymentStatusTransitionException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "INVALID_PAYMENT_STATUS_TRANSITION");
+        response.put("message", exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
 
 }

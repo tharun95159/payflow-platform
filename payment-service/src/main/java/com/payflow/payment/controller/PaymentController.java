@@ -7,6 +7,9 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.payflow.payment.entity.PaymentStatus;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/v1/payments")
@@ -34,4 +37,19 @@ public class PaymentController {
 
         return ResponseEntity.ok(response);
     }
+
+
+    @PatchMapping("/{paymentReference}/status")
+    public ResponseEntity<PaymentResponse> updatePaymentStatus(
+            @PathVariable String paymentReference,
+            @RequestParam PaymentStatus status) {
+
+        PaymentResponse response = paymentService.updatePaymentStatus(
+                paymentReference,
+                status
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 }
